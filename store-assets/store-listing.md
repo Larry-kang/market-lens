@@ -1,101 +1,83 @@
-# Chrome Web Store 上架資料
+# Chrome Web Store Submission Notes
 
----
+## Name
 
-## 擴充功能名稱（Name）
-0050 ETF 價值換算
+Market Lens
 
----
+## Short description
 
-## 簡短說明（Short description，≤132 字元）
-在所有購物網站的價格旁，即時顯示等值 ETF 股數及依歷史報酬率推估的增值參考。不構成投資建議。
+Convert web prices into BTC, sats, ETFs, and stock equivalents while you browse.
 
----
+## Full description
 
-## 完整說明（Description）
+Market Lens shows the opportunity cost of a price the moment you see it.
 
-**每次購物前，先想想這筆錢放進 ETF 會變多少。**
+When you browse shopping pages or real-estate listings, Market Lens detects visible price text and adds a small inline conversion badge next to it. You can compare a price against Bitcoin, sats, US ETFs, and Taiwan stocks without leaving the page.
 
-安裝後，瀏覽任何購物網站（PChome、momo、蝦皮、Shopee、博客來、Yahoo 購物⋯⋯）時，每個價格旁邊會自動出現一個綠色標籤，顯示這筆錢能買多少股指定的 ETF 或股票。
+### Highlights
 
-滑鼠懸停在標籤上，立刻展開詳細面板：
+- Inline price conversion on supported pages
+- BTC and sats view for Bitcoin-first users
+- Quick ticker switching from the popup
+- Support for US tickers and Taiwan tickers
+- Local quote caching to reduce repeated requests
 
-✅ 目前股價（每小時更新）
-✅ 近 1 年年化報酬率（歷史資料）
-✅ 等值股數（精確到小數三位）
-✅ 依歷史報酬率推估的 3 個月後參考金額
-✅ 依歷史報酬率推估的 1 年後參考金額
+### Example conversions
 
----
+- `NT$30,000 ≈ 0.011 BTC`
+- `NT$30,000 ≈ 1,160,000 sats`
+- `NT$30,000 ≈ 3.21 股 QQQ`
+- `NT$30,000 ≈ 5.80 股 00713`
 
-**使用方式**
+### How it works
 
-1. 安裝後直接生效，不需任何設定
-2. 到任意購物網站，價格旁會出現「≈XX.XX股」的綠色標籤
-3. 懸停標籤查看完整試算
-4. 點擊工具列圖示可切換比較標的（支援台股、美股、自訂代號）
+1. Install the extension
+2. Open a page with visible prices
+3. Hover or inspect the inline badge for quick context
+4. Open the popup to change the comparison asset
 
----
+### Privacy
 
-**技術說明**
+- Quote data comes from Yahoo Finance
+- Preferences are stored with Chrome storage
+- Visible price text is processed locally in the browser
+- No custom backend is used to collect browsing content
 
-- 資料來源：Yahoo Finance 歷史股價資料
-- 快取機制：每小時更新一次，減少 API 請求
-- 離線備援：若無法連線，顯示預設值並標示警告
-- 隱私：不收集、不傳送任何使用者資料或瀏覽記錄
+### Disclaimer
 
----
+Market Lens is an informational tool only and does not provide investment advice.
 
-**適合對象**
+## Single purpose
 
-- 正在培養投資習慣、想建立「機會成本意識」的人
-- 長期定期定額 ETF 的投資人
-- 想在消費衝動時自動踩一個煞車的人
+Show inline BTC, sats, ETF, and stock equivalents next to visible prices on web pages.
 
----
+## Privacy practices draft
 
-**免責聲明**
+### Data usage
 
-本擴充功能顯示的數據均來自 Yahoo Finance 歷史股價資料，所有推估金額係依過去一年報酬率進行機械式計算，**僅供參考，不代表未來實際報酬**。過去績效不保證未來結果，市場價格可能上漲或下跌。本工具之任何內容均不構成投資建議、買賣有價證券之邀約或推薦，使用者應自行評估風險並為投資決策負責。
+- No sale of user data
+- No use of browsing data for advertising
+- No custom backend for page-content collection
 
----
+### Permission justification
 
-## 類別（Category）
-工具（Tools）
+- `storage`
+  Save the user's selected ticker and local quote cache.
+- `https://query1.finance.yahoo.com/*`
+  Request price data from Yahoo Finance.
+- `https://query2.finance.yahoo.com/*`
+  Use Yahoo Finance fallback endpoint for quote requests.
+- `*://*/*`
+  Read visible page price text and render inline conversion badges on supported pages.
 
-## 語言（Language）
-繁體中文（zh-TW）
+### Remote code
 
----
+- No remote code execution
 
-## 上架檢查清單
+## Suggested support URL
 
-### 必要素材
-- [x] icon16.png
-- [x] icon48.png
-- [x] icon128.png
-- [x] 截圖1：購物頁面上的 badge + tooltip（screenshot1.html → 截圖為 1280×800）
-- [x] 截圖2：Popup 面板與功能說明（screenshot2.html → 截圖為 1280×800）
+<https://github.com/Larry-kang/market-lens>
 
-### 截圖方式
-1. 用 Chrome 開啟 screenshot1.html / screenshot2.html
-2. 視窗設為 1280×800（DevTools → 右上角裝置模擬，輸入 1280×800）
-3. 按 Cmd+Shift+P → 輸入 "Capture screenshot" → 存為 PNG
+## Suggested privacy policy URL
 
-### 上架步驟
-1. 前往 https://chrome.google.com/webstore/devconsole
-2. 支付 $5 USD 開發者費用（一次性）
-3. 點「新增項目」→上傳整個 etf-price-extension 資料夾的 .zip
-4. 填入上方名稱、說明文字
-5. 上傳 icon128.png 作為商店圖示
-6. 上傳兩張截圖
-7. 隱私設定：選「不收集使用者資料」
-8. 送出審核（通常 1–3 個工作天）
-
-### 打包指令
-```bash
-cd /Users/dingguanwei
-zip -r etf-price-extension.zip etf-price-extension/ \
-  --exclude "*/store-assets/*" \
-  --exclude "*/.DS_Store"
-```
+Publish [privacy.html](C:/Users/kqazk/OneDrive/文件/Playground/etf-price-extension/privacy.html) to GitHub Pages or another public URL and use that link in the dashboard.

@@ -12,6 +12,10 @@
   } = globalThis.BAPL || {};
 
   const SAMPLE_AMOUNT = 30000;
+  const SUPPORT_LINKS = {
+    sponsors: 'https://github.com/sponsors/Larry-kang',
+    project: 'https://github.com/Larry-kang/market-lens'
+  };
 
   const nodes = {
     currentSummary: document.getElementById('currentSummary'),
@@ -186,6 +190,16 @@
       if (!button) return;
       nodes.tickerInput.value = getWatchlistInputValue(button.dataset.ticker);
       void saveTicker(button.dataset.ticker);
+    });
+
+    document.querySelectorAll('[data-support-link]').forEach(link => {
+      link.addEventListener('click', event => {
+        const key = event.currentTarget.dataset.supportLink;
+        const url = SUPPORT_LINKS[key];
+        if (!url) return;
+        event.preventDefault();
+        window.open(url, '_blank', 'noopener,noreferrer');
+      });
     });
   }
 
