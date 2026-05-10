@@ -2,161 +2,70 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>ETF 價值換算</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      width: 300px; background: #fff; color: #222;
-    }
-
-    /* Header */
-    .header {
-      background: linear-gradient(135deg, #00b09b, #096);
-      color: #fff; padding: 14px 16px; text-align: center;
-    }
-    .header h1 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
-    .header p  { font-size: 11px; opacity: 0.85; }
-
-    /* Sections */
-    .section { padding: 13px 16px; border-bottom: 1px solid #f0f0f0; }
-    .section-title { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 9px; }
-
-    /* Stock selector */
-    .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-    .preset-btn {
-      padding: 5px 10px; border-radius: 16px; border: 1.5px solid #e0e0e0;
-      background: #fff; font-size: 12px; cursor: pointer; color: #444;
-      transition: all 0.15s; white-space: nowrap; line-height: 1.4;
-    }
-    .preset-btn:hover { border-color: #00b09b; color: #096; }
-    .preset-btn.active {
-      background: linear-gradient(135deg, #00b09b, #096);
-      border-color: transparent; color: #fff; font-weight: 600;
-    }
-
-    /* Custom input row */
-    .custom-row { display: flex; gap: 6px; align-items: center; }
-    .custom-row input {
-      flex: 1; padding: 7px 10px; border: 1.5px solid #e0e0e0; border-radius: 8px;
-      font-size: 13px; outline: none; transition: border-color 0.15s;
-      font-family: inherit; text-transform: uppercase;
-    }
-    .custom-row input:focus { border-color: #00b09b; }
-    .custom-row input::placeholder { text-transform: none; color: #bbb; }
-    .apply-btn {
-      padding: 7px 12px; background: linear-gradient(135deg, #00b09b, #096);
-      color: #fff; border: none; border-radius: 8px; font-size: 12px;
-      font-weight: 600; cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
-    }
-    .apply-btn:hover { opacity: 0.85; }
-    .apply-btn:disabled { opacity: 0.45; cursor: default; }
-
-    .ticker-hint { font-size: 10px; color: #bbb; margin-top: 5px; }
-    .ticker-error { font-size: 11px; color: #c00; margin-top: 5px; }
-
-    /* Data display */
-    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; font-size: 13px; }
-    .row:last-child { margin-bottom: 0; }
-    .label { color: #666; }
-    .value { font-weight: 600; }
-    .pos { color: #d4380d; }
-    .neg { color: #389e0d; }
-    .muted { color: #aaa; font-size: 11px; }
-
-    .loading { text-align: center; padding: 18px; color: #999; font-size: 13px; }
-
-    .fallback-warn {
-      background: #fff7e6; border: 1px solid #ffd591; border-radius: 6px;
-      padding: 7px 10px; font-size: 11px; color: #d46b08; margin-top: 6px;
-    }
-
-    /* Refresh button */
-    .refresh-btn {
-      display: block; width: 100%; padding: 9px; background: #f5f5f5;
-      border: 1px solid #e0e0e0; border-radius: 8px; font-size: 12px;
-      cursor: pointer; color: #555; transition: background 0.15s;
-    }
-    .refresh-btn:hover { background: #ebebeb; }
-    .refresh-btn:disabled { opacity: 0.45; cursor: default; }
-
-    .footer { padding: 8px 16px; font-size: 10px; color: #ccc; text-align: center; }
-
-    /* Toggle switch */
-    .toggle-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 16px; background: #f8f8f8; border-bottom: 1px solid #eee;
-    }
-    .toggle-label { font-size: 13px; font-weight: 600; color: #333; }
-    .toggle-sub   { font-size: 11px; color: #aaa; margin-top: 1px; }
-
-    .toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-track {
-      position: absolute; inset: 0; border-radius: 24px;
-      background: #ddd; cursor: pointer; transition: background 0.2s;
-    }
-    .toggle-track::after {
-      content: ''; position: absolute;
-      top: 3px; left: 3px;
-      width: 18px; height: 18px; border-radius: 50%;
-      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-      transition: transform 0.2s;
-    }
-    .toggle-switch input:checked + .toggle-track { background: linear-gradient(135deg, #00b09b, #096); }
-    .toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
-
-    /* Dim content when disabled */
-    body.etf-off .section,
-    body.etf-off #main { opacity: 0.45; pointer-events: none; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market Lens</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="header">
-    <h1 id="headerTitle">📈 ETF 價值換算</h1>
-    <p>滑鼠懸停在網頁價格標籤即可查看詳情</p>
-  </div>
+  <main class="popup-shell">
+    <header class="hero">
+      <div class="hero__eyebrow">Market Lens</div>
+      <h1>價格換算控制台</h1>
+      <p id="currentSummary">目前標的：BTC-USD</p>
+    </header>
 
-  <!-- Enable / Disable toggle -->
-  <div class="toggle-bar">
-    <div>
-      <div class="toggle-label">在此網頁顯示換算標籤</div>
-      <div class="toggle-sub" id="toggleSub">載入中…</div>
-    </div>
-    <label class="toggle-switch">
-      <input type="checkbox" id="enableToggle" checked>
-      <span class="toggle-track"></span>
-    </label>
-  </div>
+    <section class="card">
+      <label class="field-label" for="tickerInput">輸入標的</label>
+      <div class="input-row">
+        <input id="tickerInput" type="text" spellcheck="false" autocomplete="off" placeholder="BTC、QQQ、00713" maxlength="24">
+        <button id="saveBtn" type="button" class="primary-btn">儲存</button>
+      </div>
+      <div class="hint" id="tickerHint">BTC → BTC-USD，00713 → 00713.TW</div>
+      <div class="chip-grid" id="watchlist"></div>
+    </section>
 
-  <!-- Stock selector -->
-  <div class="section">
-    <div class="section-title">比較標的</div>
-    <div class="presets" id="presets">
-      <button class="preset-btn" data-ticker="0050.TW">0050<br><span style="font-size:10px;opacity:.7">台灣50</span></button>
-      <button class="preset-btn" data-ticker="0056.TW">0056<br><span style="font-size:10px;opacity:.7">高股息</span></button>
-      <button class="preset-btn" data-ticker="00878.TW">00878<br><span style="font-size:10px;opacity:.7">國泰永續</span></button>
-      <button class="preset-btn" data-ticker="006208.TW">006208<br><span style="font-size:10px;opacity:.7">富邦台50</span></button>
-      <button class="preset-btn" data-ticker="SPY">SPY<br><span style="font-size:10px;opacity:.7">S&P 500</span></button>
-      <button class="preset-btn" data-ticker="QQQ">QQQ<br><span style="font-size:10px;opacity:.7">那斯達克</span></button>
-    </div>
-    <div class="custom-row">
-      <input type="text" id="customInput" placeholder="自訂代號，如 2330 或 NVDA" maxlength="12">
-      <button class="apply-btn" id="applyBtn">套用</button>
-    </div>
-    <div class="ticker-hint" id="tickerHint">輸入台股代號自動加上 .TW，美股直接輸入英文代號</div>
-  </div>
+    <section class="card quote-card">
+      <div class="quote-card__top">
+        <div>
+          <div class="field-label">轉換預覽</div>
+          <div class="quote-preview" id="previewText">載入中…</div>
+        </div>
+        <button id="refreshBtn" type="button" class="secondary-btn">重新整理</button>
+      </div>
 
-  <!-- Data -->
-  <div id="main" class="loading">資料載入中…</div>
+      <div class="metric-grid">
+        <div class="metric">
+          <span>顯示名稱</span>
+          <strong id="displayName">—</strong>
+        </div>
+        <div class="metric">
+          <span>現價</span>
+          <strong id="priceText">—</strong>
+        </div>
+        <div class="metric">
+          <span>更新時間</span>
+          <strong id="updatedText">—</strong>
+        </div>
+        <div class="metric">
+          <span>來源</span>
+          <strong id="sourceText">—</strong>
+        </div>
+      </div>
 
-  <!-- Refresh -->
-  <div class="section">
-    <button class="refresh-btn" id="refreshBtn">🔄 重新抓取最新數據</button>
-  </div>
+      <div class="status" id="statusText">準備就緒</div>
+    </section>
 
-  <div class="footer">資料來源：Yahoo Finance｜每小時自動更新</div>
+    <section class="card support-card">
+      <div class="field-label">Support</div>
+      <div class="support-card__copy">支持 Market Lens 的持續開發</div>
+      <div class="support-card__actions">
+        <a class="support-link support-link--primary" href="https://github.com/sponsors/Larry-kang" target="_blank" rel="noreferrer">GitHub Sponsors</a>
+        <a class="support-link" href="https://github.com/Larry-kang/market-lens" target="_blank" rel="noreferrer">Project Page</a>
+      </div>
+    </section>
+  </main>
 
+  <script src="shared.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

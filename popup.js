@@ -1,181 +1,206 @@
-const DEFAULT_TICKER = '0050.TW';
+(() => {
+  'use strict';
 
-const mainEl      = document.getElementById('main');
-const refreshBtn  = document.getElementById('refreshBtn');
-const presetsEl   = document.getElementById('presets');
-const customInput = document.getElementById('customInput');
-const applyBtn    = document.getElementById('applyBtn');
-const tickerHint  = document.getElementById('tickerHint');
-const headerTitle = document.getElementById('headerTitle');
-const enableToggle = document.getElementById('enableToggle');
-const toggleSub    = document.getElementById('toggleSub');
+  const {
+    DEFAULT_TICKER,
+    DEFAULT_USD_TWD,
+    WATCHLIST,
+    formatMoney,
+    formatTargetQuantity,
+    getDisplayName,
+    normalizeTicker
+  } = globalThis.BAPL || {};
 
-let currentTicker = DEFAULT_TICKER;
+  const SAMPLE_AMOUNT = 30000;
 
-// --- Ticker normalization (mirrors background.js) ---
-function normalizeTicker(input) {
-  const t = input.trim().toUpperCase();
-  if (!t) return DEFAULT_TICKER;
-  if (t.includes('.')) return t;
-  if (/^\d/.test(t)) return t + '.TW';
-  return t;
-}
+  const nodes = {
+    currentSummary: document.getElementById('currentSummary'),
+    displayName: document.getElementById('displayName'),
+    priceText: document.getElementById('priceText'),
+    updatedText: document.getElementById('updatedText'),
+    sourceText: document.getElementById('sourceText'),
+    previewText: document.getElementById('previewText'),
+    statusText: document.getElementById('statusText'),
+    tickerInput: document.getElementById('tickerInput'),
+    saveBtn: document.getElementById('saveBtn'),
+    refreshBtn: document.getElementById('refreshBtn'),
+    watchlist: document.getElementById('watchlist'),
+    tickerHint: document.getElementById('tickerHint')
+  };
 
-function displayTicker(ticker) {
-  return ticker.replace('.TW', '');
-}
+  const state = {
+    ticker: DEFAULT_TICKER || 'BTC-USD',
+    quote: null
+  };
 
-// --- Preset buttons ---
-function updatePresetUI(ticker) {
-  presetsEl.querySelectorAll('.preset-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.ticker === ticker);
-  });
-  // If it's a custom ticker not in presets, clear all active states
-}
-
-presetsEl.addEventListener('click', e => {
-  const btn = e.target.closest('.preset-btn');
-  if (!btn) return;
-  selectTicker(btn.dataset.ticker);
-  customInput.value = '';
-  tickerHint.textContent = '輸入台股代號自動加上 .TW，美股直接輸入英文代號';
-  tickerHint.className = 'ticker-hint';
-});
-
-// --- Custom input ---
-customInput.addEventListener('input', () => {
-  const val = customInput.value.trim();
-  if (!val) {
-    tickerHint.textContent = '輸入台股代號自動加上 .TW，美股直接輸入英文代號';
-    tickerHint.className = 'ticker-hint';
-    return;
-  }
-  const normalized = normalizeTicker(val);
-  tickerHint.textContent = `將使用代號：${normalized}`;
-  tickerHint.className = 'ticker-hint';
-});
-
-customInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') applyBtn.click();
-});
-
-applyBtn.addEventListener('click', () => {
-  const val = customInput.value.trim();
-  if (!val) return;
-  const normalized = normalizeTicker(val);
-  selectTicker(normalized);
-});
-
-// --- Core: select ticker, save, reload ---
-async function selectTicker(ticker) {
-  currentTicker = ticker;
-  updatePresetUI(ticker);
-  headerTitle.textContent = `📈 ${displayTicker(ticker)} 價值換算`;
-  await chrome.storage.sync.set({ selected_ticker: ticker });
-  loadData(false);
-}
-
-// --- Render data ---
-function renderData(data) {
-  if (!data || data.error) {
-    mainEl.innerHTML = `<div class="section" style="color:#c00;font-size:13px;padding:14px 16px;">
-      ⚠️ 無法取得「${displayTicker(currentTicker)}」的資料<br>
-      <span style="color:#999;font-size:11px;margin-top:4px;display:block;">${data?.error || '請確認代號是否正確，或稍後再試'}</span>
-    </div>`;
-    return;
+  function getQuoteCurrency(quote) {
+    return quote.currency === 'USD' ? 'USD' : 'TWD';
   }
 
-  const { displayName, currency, currentPrice, annualReturn, updatedAt, isFallback } = data;
-  const isTWD = currency === 'TWD';
-  const fmt = n => (isTWD ? 'NT$' : '$') + Math.round(n).toLocaleString();
-  const pct = (annualReturn * 100).toFixed(1);
-  const sign = annualReturn >= 0 ? '+' : '';
-  const cls  = annualReturn >= 0 ? 'pos' : 'neg';
-  const updatedStr = updatedAt
-    ? new Date(updatedAt).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-    : '—';
-
-  const priceLabel = isTWD ? `NT$ ${currentPrice.toFixed(2)}` : `$ ${currentPrice.toFixed(2)}`;
-
-  // Example: 1000 TWD or 1000 (same currency)
-  const example = 1000;
-  const exampleLabel = isTWD ? 'NT$1,000' : '$1,000';
-  const shares = (example / currentPrice).toFixed(3);
-  const val3m  = example * Math.pow(1 + annualReturn, 3 / 12);
-  const val1y  = example * (1 + annualReturn);
-
-  mainEl.innerHTML = `
-    <div class="section">
-      <div class="row">
-        <span class="label">${displayName || displayTicker(currentTicker)}<small style="color:#bbb;font-size:11px;margin-left:5px;font-weight:400">${displayTicker(currentTicker)}</small></span>
-        <span class="value">${priceLabel}</span>
-      </div>
-      <div class="row">
-        <span class="label">近 1 年年化報酬</span>
-        <span class="value ${cls}">${sign}${pct}%</span>
-      </div>
-      <div class="row">
-        <span class="label muted">資料更新</span>
-        <span class="muted">${updatedStr}</span>
-      </div>
-      ${isFallback ? '<div class="fallback-warn">⚠️ 無法連線 Yahoo Finance，顯示預設數值</div>' : ''}
-    </div>
-    <div class="section">
-      <div class="section-title">試算：花 ${exampleLabel} 改買 ${displayTicker(currentTicker)}</div>
-      <div class="row">
-        <span class="label">可買股數</span>
-        <span class="value">${shares} 股</span>
-      </div>
-      <div class="row">
-        <span class="label">3 個月後約</span>
-        <span class="value ${cls}">${fmt(val3m)}</span>
-      </div>
-      <div class="row">
-        <span class="label">1 年後約</span>
-        <span class="value ${cls}">${fmt(val1y)}</span>
-      </div>
-    </div>
-  `;
-}
-
-async function loadData(forceRefresh = false) {
-  mainEl.innerHTML = '<div class="loading">資料載入中…</div>';
-  refreshBtn.disabled = true;
-  applyBtn.disabled = true;
-  try {
-    const type = forceRefresh ? 'FORCE_REFRESH' : 'GET_STOCK_DATA';
-    const data = await chrome.runtime.sendMessage({ type, ticker: currentTicker });
-    renderData(data);
-  } catch (e) {
-    mainEl.innerHTML = `<div class="section" style="color:#c00;font-size:13px;padding:14px 16px;">連線失敗：${e.message}</div>`;
+  function convertToQuoteCurrency(amount, pageCurrency, quoteCurrency) {
+    if (pageCurrency === quoteCurrency) return amount;
+    if (pageCurrency === 'TWD' && quoteCurrency === 'USD') return amount / DEFAULT_USD_TWD;
+    if (pageCurrency === 'USD' && quoteCurrency === 'TWD') return amount * DEFAULT_USD_TWD;
+    return amount;
   }
-  refreshBtn.disabled = false;
-  applyBtn.disabled = false;
-}
 
-refreshBtn.addEventListener('click', () => loadData(true));
+  function formatUpdatedTime(quote) {
+    const ts = quote.marketTime || quote.fetchedAt;
+    if (!ts) return '—';
 
-// --- Toggle: enable / disable badges ---
-function applyToggleUI(enabled) {
-  enableToggle.checked = enabled;
-  toggleSub.textContent = enabled ? '已開啟，標籤顯示中' : '已關閉，所有標籤已隱藏';
-  document.body.classList.toggle('etf-off', !enabled);
-}
+    return new Intl.DateTimeFormat('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(ts));
+  }
 
-enableToggle.addEventListener('change', () => {
-  const enabled = enableToggle.checked;
-  applyToggleUI(enabled);
-  chrome.storage.sync.set({ extension_enabled: enabled });
-});
+  function setStatus(message, tone = 'muted') {
+    nodes.statusText.textContent = message;
+    nodes.statusText.dataset.tone = tone;
+  }
 
-// --- Init: read saved ticker + enabled state ---
-chrome.storage.sync.get(['selected_ticker', 'extension_enabled'], r => {
-  currentTicker = r.selected_ticker || DEFAULT_TICKER;
-  updatePresetUI(currentTicker);
-  headerTitle.textContent = `📈 ${displayTicker(currentTicker)} 價值換算`;
+  function setHint(message, tone = 'muted') {
+    nodes.tickerHint.textContent = message;
+    nodes.tickerHint.dataset.tone = tone;
+  }
 
-  const enabled = r.extension_enabled !== false; // default true
-  applyToggleUI(enabled);
+  function setActiveWatchlist(ticker) {
+    nodes.watchlist.querySelectorAll('button[data-ticker]').forEach(button => {
+      button.classList.toggle('is-active', button.dataset.ticker === ticker);
+    });
+  }
 
-  loadData(false);
-});
+  function getWatchlistLabel(ticker) {
+    if (ticker === 'BTC-SATS') return 'SATS';
+    if (ticker === 'BTC-USD') return 'BTC';
+    if (ticker === 'ETH-USD') return 'ETH';
+    if (ticker.endsWith('.TW')) return ticker.replace(/\.TW$/u, '');
+
+    return ticker;
+  }
+
+  function getWatchlistInputValue(ticker) {
+    if (ticker === 'BTC-SATS') return 'SATS';
+    if (ticker.endsWith('.TW')) return ticker.replace(/\.TW$/u, '');
+
+    return ticker;
+  }
+
+  function renderQuote(quote) {
+    if (!quote || !Number.isFinite(quote.currentPrice)) {
+      nodes.currentSummary.textContent = `目前標的：${getWatchlistLabel(state.ticker)}`;
+      nodes.displayName.textContent = getDisplayName(state.ticker);
+      nodes.priceText.textContent = '資料取得失敗';
+      nodes.updatedText.textContent = '—';
+      nodes.sourceText.textContent = 'Yahoo Finance';
+      nodes.previewText.textContent = '無法產生預覽';
+      setStatus(quote?.error ? `資料失敗：${quote.error}` : '尚未取得資料', 'warn');
+      return;
+    }
+
+    state.quote = quote;
+
+    const quoteCurrency = getQuoteCurrency(quote);
+    const sampleEffectiveAmount = convertToQuoteCurrency(SAMPLE_AMOUNT, 'TWD', quoteCurrency);
+    const sampleUnits = sampleEffectiveAmount / quote.currentPrice;
+
+    nodes.currentSummary.textContent = `目前標的：${getWatchlistLabel(quote.ticker)}`;
+    nodes.displayName.textContent = getDisplayName(quote.ticker);
+    nodes.priceText.textContent = formatMoney(quote.currentPrice, quoteCurrency);
+    nodes.updatedText.textContent = formatUpdatedTime(quote);
+    nodes.sourceText.textContent = quote.fromCache ? (quote.stale ? '快取回退' : '快取') : '即時抓取';
+    nodes.previewText.textContent = `${formatMoney(SAMPLE_AMOUNT, 'TWD')} ${formatTargetQuantity(sampleUnits, quote.ticker)}`;
+    setStatus(quote.stale ? '已顯示快取資料，背景會再嘗試更新' : '已更新完成', quote.fromCache ? 'warn' : 'ok');
+  }
+
+  async function loadQuote(forceRefresh = false) {
+    nodes.refreshBtn.disabled = true;
+    nodes.saveBtn.disabled = true;
+    setStatus(forceRefresh ? '重新抓取中…' : '載入中…', 'muted');
+
+    try {
+      const quote = await chrome.runtime.sendMessage({
+        type: forceRefresh ? 'QUOTE_REFRESH' : 'QUOTE_GET',
+        ticker: state.ticker,
+        forceRefresh
+      });
+
+      renderQuote(quote);
+    } catch (error) {
+      renderQuote({ error: error.message, ticker: state.ticker });
+    } finally {
+      nodes.refreshBtn.disabled = false;
+      nodes.saveBtn.disabled = false;
+    }
+  }
+
+  async function saveTicker(rawValue) {
+    const normalized = normalizeTicker(rawValue);
+    state.ticker = normalized;
+    nodes.tickerInput.value = getWatchlistInputValue(normalized);
+    setActiveWatchlist(normalized);
+    await chrome.storage.sync.set({ selected_ticker: normalized });
+    setHint(`已儲存：${normalized}`, 'ok');
+    await loadQuote(true);
+  }
+
+  function seedWatchlistButtons() {
+    nodes.watchlist.innerHTML = WATCHLIST.map(ticker => {
+      const label = getWatchlistLabel(ticker);
+      const display = getDisplayName(ticker);
+      return `
+        <button type="button" class="watch-chip" data-ticker="${ticker}">
+          <span class="watch-chip__ticker">${label}</span>
+          <span class="watch-chip__name">${display}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  function bindEvents() {
+    nodes.saveBtn.addEventListener('click', () => {
+      void saveTicker(nodes.tickerInput.value);
+    });
+
+    nodes.refreshBtn.addEventListener('click', () => {
+      void loadQuote(true);
+    });
+
+    nodes.tickerInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        nodes.saveBtn.click();
+      }
+    });
+
+    nodes.tickerInput.addEventListener('input', () => {
+      const normalized = normalizeTicker(nodes.tickerInput.value);
+      setHint(`將套用：${normalized}`, 'muted');
+    });
+
+    nodes.watchlist.addEventListener('click', event => {
+      const button = event.target.closest('button[data-ticker]');
+      if (!button) return;
+      nodes.tickerInput.value = getWatchlistInputValue(button.dataset.ticker);
+      void saveTicker(button.dataset.ticker);
+    });
+  }
+
+  async function init() {
+    seedWatchlistButtons();
+    bindEvents();
+
+    const stored = await chrome.storage.sync.get(['selected_ticker']);
+    state.ticker = normalizeTicker(stored.selected_ticker || DEFAULT_TICKER);
+    nodes.tickerInput.value = getWatchlistInputValue(state.ticker);
+    setActiveWatchlist(state.ticker);
+    setHint(`BTC → BTC-USD，SATS → BTC 換算，00631L → 00631L.TW`, 'muted');
+
+    await loadQuote(false);
+  }
+
+  init();
+})();
